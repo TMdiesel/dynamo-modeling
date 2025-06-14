@@ -134,6 +134,20 @@ func (p *Product) UpdateDetails(name, description string) error {
 	return nil
 }
 
+// UpdateName updates the product name
+func (p *Product) UpdateName(name string) {
+	if name != "" {
+		p.name = name
+		p.updatedAt = time.Now()
+	}
+}
+
+// UpdateDescription updates the product description
+func (p *Product) UpdateDescription(description string) {
+	p.description = description
+	p.updatedAt = time.Now()
+}
+
 // Equals compares two Product entities by ID
 func (p *Product) Equals(other *Product) bool {
 	if other == nil {

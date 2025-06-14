@@ -42,16 +42,34 @@ func main() {
 
 	// Repository層を初期化
 	customerRepo := repository.NewDynamoCustomerRepository(dbClient)
+	productRepo := repository.NewDynamoProductRepository(dbClient)
+	orderRepo := repository.NewDynamoOrderRepository(dbClient)
 
 	// UseCase層を初期化
+	// Customer UseCases
 	createCustomerUseCase := usecase.NewCreateCustomerUseCase(customerRepo)
 	getCustomerUseCase := usecase.NewGetCustomerUseCase(customerRepo)
 	listCustomersUseCase := usecase.NewListCustomersUseCase(customerRepo)
 	updateCustomerUseCase := usecase.NewUpdateCustomerUseCase(customerRepo)
 	deleteCustomerUseCase := usecase.NewDeleteCustomerUseCase(customerRepo)
 
+	// Product UseCases
+	createProductUseCase := usecase.NewCreateProductUseCase(productRepo)
+	getProductUseCase := usecase.NewGetProductUseCase(productRepo)
+	listProductsUseCase := usecase.NewListProductsUseCase(productRepo)
+	updateProductUseCase := usecase.NewUpdateProductUseCase(productRepo)
+	deleteProductUseCase := usecase.NewDeleteProductUseCase(productRepo)
+
+	// Order UseCases
+	createOrderUseCase := usecase.NewCreateOrderUseCase(orderRepo, customerRepo, productRepo)
+	getOrderUseCase := usecase.NewGetOrderUseCase(orderRepo)
+	listOrdersUseCase := usecase.NewListOrdersUseCase(orderRepo)
+	updateOrderStatusUseCase := usecase.NewUpdateOrderStatusUseCase(orderRepo)
+
 	// Presenter層を初期化
 	customerPresenter := presenter.NewCustomerPresenter()
+	productPresenter := presenter.NewProductPresenter()
+	orderPresenter := presenter.NewOrderPresenter()
 
 	// Controller層を初期化
 	customerController := controller.NewCustomerController(
@@ -63,8 +81,25 @@ func main() {
 		customerPresenter,
 	)
 
+	productController := controller.NewProductController(
+		createProductUseCase,
+		getProductUseCase,
+		listProductsUseCase,
+		updateProductUseCase,
+		deleteProductUseCase,
+		productPresenter,
+	)
+
+	orderController := controller.NewOrderController(
+		createOrderUseCase,
+		getOrderUseCase,
+		listOrdersUseCase,
+		updateOrderStatusUseCase,
+		orderPresenter,
+	)
+
 	// Handler層を初期化
-	apiHandler := handler.NewAPIHandler(customerController)
+	apiHandler := handler.NewAPIHandler(customerController, productController, orderController)
 
 	// Echoサーバー作成
 	e := echo.New()

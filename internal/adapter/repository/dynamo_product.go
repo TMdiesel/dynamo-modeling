@@ -128,20 +128,24 @@ func (r *DynamoProductRepository) FindByID(ctx context.Context, id value.Product
 	return product, nil
 }
 
-// FindAll retrieves all products
-func (r *DynamoProductRepository) FindAll(ctx context.Context) ([]*entity.Product, error) {
-	slog.Info("Finding all products")
+// FindAll retrieves all products with optional pagination
+func (r *DynamoProductRepository) FindAll(ctx context.Context, limit int, lastKey *string) ([]*entity.Product, *string, error) {
+	slog.Info("Finding all products", "limit", limit)
 
 	var items []ProductItem
 	table := r.client.GetTable()
 
-	err := table.Get("GSI1PK", "PRODUCT#ALL").
-		Index("GSI1").
-		All(ctx, &items)
+	query := table.Get("GSI1PK", "PRODUCT#ALL").
+		Index("GSI1")
 
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.All(ctx, &items)
 	if err != nil {
 		slog.Error("Failed to find all products", "error", err)
-		return nil, fmt.Errorf("failed to find all products: %w", err)
+		return nil, nil, fmt.Errorf("failed to find all products: %w", err)
 	}
 
 	products := make([]*entity.Product, 0, len(items))
@@ -155,7 +159,42 @@ func (r *DynamoProductRepository) FindAll(ctx context.Context) ([]*entity.Produc
 	}
 
 	slog.Info("Found products successfully", "count", len(products))
-	return products, nil
+	return products, nil, nil // 簡易実装: lastKey は未実装
+}
+
+// FindInStock retrieves products that are currently in stock
+func (r *DynamoProductRepository) FindInStock(ctx context.Context, limit int, lastKey *string) ([]*entity.Product, *string, error) {
+	slog.Info("Finding products in stock", "limit", limit)
+
+	var items []ProductItem
+	table := r.client.GetTable()
+
+	// Use scan with filter for stock > 0
+	scan := table.Scan().
+		Filter("'Type' = ? AND 'Stock' > ?", "PRODUCT", 0)
+
+	if limit > 0 {
+		scan = scan.Limit(limit)
+	}
+
+	err := scan.All(ctx, &items)
+	if err != nil {
+		slog.Error("Failed to find products in stock", "error", err)
+		return nil, nil, fmt.Errorf("failed to find products in stock: %w", err)
+	}
+
+	products := make([]*entity.Product, 0, len(items))
+	for _, item := range items {
+		product, err := item.ToEntity()
+		if err != nil {
+			slog.Error("Failed to convert item to entity", "productID", item.ID, "error", err)
+			continue // Skip invalid items
+		}
+		products = append(products, product)
+	}
+
+	slog.Info("Found products in stock successfully", "count", len(products))
+	return products, nil, nil // 簡易実装: lastKey は未実装
 }
 
 // Delete removes a product
@@ -175,4 +214,19 @@ func (r *DynamoProductRepository) Delete(ctx context.Context, id value.ProductID
 
 	slog.Info("Product deleted successfully", "productID", id.String())
 	return nil
+}
+
+// Exists checks if a product exists by its ID
+func (r *DynamoProductRepository) Exists(ctx context.Context, id value.ProductID) (bool, error) {
+	slog.Info("Checking if product exists", "productID", id.String())
+
+	_, err := r.FindByID(ctx, id)
+	if err != nil {
+		if err.Error() == "product not found" {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }

@@ -87,7 +87,21 @@ func (item *OrderItem) ToEntity() (*entity.Order, error) {
 		orderItems = append(orderItems, *orderItem)
 	}
 
-	order, err := entity.NewOrder(orderID, customerID, orderItems)
+	// DynamoDBからのデータでOrderを復元
+	total, err := value.NewMoney(item.Total)
+	if err != nil {
+		return nil, fmt.Errorf("invalid total amount: %w", err)
+	}
+
+	order, err := entity.NewOrderWithState(
+		orderID,
+		customerID,
+		orderItems,
+		entity.OrderStatus(item.Status),
+		total,
+		item.CreatedAt,
+		item.UpdatedAt,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order entity: %w", err)
 	}
@@ -183,19 +197,23 @@ func (r *DynamoOrderRepository) FindByID(ctx context.Context, id value.OrderID) 
 }
 
 // FindByCustomerID retrieves all orders for a customer
-func (r *DynamoOrderRepository) FindByCustomerID(ctx context.Context, customerID value.CustomerID) ([]*entity.Order, error) {
-	slog.Info("Finding orders by customer ID", "customerID", customerID.String())
+func (r *DynamoOrderRepository) FindByCustomerID(ctx context.Context, customerID value.CustomerID, limit int, lastKey *string) ([]*entity.Order, *string, error) {
+	slog.Info("Finding orders by customer ID", "customerID", customerID.String(), "limit", limit)
 
 	var items []OrderItem
 	table := r.client.GetTable()
 
-	err := table.Get("GSI1PK", fmt.Sprintf("CUSTOMER#%s", customerID.String())).
-		Index("GSI1").
-		All(ctx, &items)
+	query := table.Get("GSI1PK", fmt.Sprintf("CUSTOMER#%s", customerID.String())).
+		Index("GSI1")
 
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.All(ctx, &items)
 	if err != nil {
 		slog.Error("Failed to find orders by customer ID", "customerID", customerID.String(), "error", err)
-		return nil, fmt.Errorf("failed to find orders by customer ID: %w", err)
+		return nil, nil, fmt.Errorf("failed to find orders by customer ID: %w", err)
 	}
 
 	orders := make([]*entity.Order, 0, len(items))
@@ -209,7 +227,7 @@ func (r *DynamoOrderRepository) FindByCustomerID(ctx context.Context, customerID
 	}
 
 	slog.Info("Found orders successfully", "customerID", customerID.String(), "count", len(orders))
-	return orders, nil
+	return orders, nil, nil // 簡易実装: lastKey は未実装
 }
 
 // Delete removes an order
@@ -229,4 +247,90 @@ func (r *DynamoOrderRepository) Delete(ctx context.Context, id value.OrderID) er
 
 	slog.Info("Order deleted successfully", "orderID", id.String())
 	return nil
+}
+
+// FindByStatus retrieves orders with a specific status
+func (r *DynamoOrderRepository) FindByStatus(ctx context.Context, status entity.OrderStatus, limit int, lastKey *string) ([]*entity.Order, *string, error) {
+	slog.Info("Finding orders by status", "status", string(status), "limit", limit)
+
+	var items []OrderItem
+	table := r.client.GetTable()
+
+	// Use scan with filter for status
+	scan := table.Scan().
+		Filter("'Type' = ? AND 'Status' = ?", "ORDER", string(status))
+
+	if limit > 0 {
+		scan = scan.Limit(limit)
+	}
+
+	err := scan.All(ctx, &items)
+	if err != nil {
+		slog.Error("Failed to find orders by status", "status", string(status), "error", err)
+		return nil, nil, fmt.Errorf("failed to find orders by status: %w", err)
+	}
+
+	orders := make([]*entity.Order, 0, len(items))
+	for _, item := range items {
+		order, err := item.ToEntity()
+		if err != nil {
+			slog.Error("Failed to convert item to entity", "orderID", item.ID, "error", err)
+			continue // Skip invalid items
+		}
+		orders = append(orders, order)
+	}
+
+	slog.Info("Found orders by status successfully", "status", string(status), "count", len(orders))
+	return orders, nil, nil // 簡易実装: lastKey は未実装
+}
+
+// FindByCustomerAndStatus retrieves orders for a customer with a specific status
+func (r *DynamoOrderRepository) FindByCustomerAndStatus(ctx context.Context, customerID value.CustomerID, status entity.OrderStatus, limit int, lastKey *string) ([]*entity.Order, *string, error) {
+	slog.Info("Finding orders by customer and status", "customerID", customerID.String(), "status", string(status), "limit", limit)
+
+	var items []OrderItem
+	table := r.client.GetTable()
+
+	// Use GSI1 with filter for status
+	query := table.Get("GSI1PK", fmt.Sprintf("CUSTOMER#%s", customerID.String())).
+		Index("GSI1").
+		Filter("'Status' = ?", string(status))
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.All(ctx, &items)
+	if err != nil {
+		slog.Error("Failed to find orders by customer and status", "customerID", customerID.String(), "status", string(status), "error", err)
+		return nil, nil, fmt.Errorf("failed to find orders by customer and status: %w", err)
+	}
+
+	orders := make([]*entity.Order, 0, len(items))
+	for _, item := range items {
+		order, err := item.ToEntity()
+		if err != nil {
+			slog.Error("Failed to convert item to entity", "orderID", item.ID, "error", err)
+			continue // Skip invalid items
+		}
+		orders = append(orders, order)
+	}
+
+	slog.Info("Found orders by customer and status successfully", "customerID", customerID.String(), "status", string(status), "count", len(orders))
+	return orders, nil, nil // 簡易実装: lastKey は未実装
+}
+
+// Exists checks if an order exists by its ID
+func (r *DynamoOrderRepository) Exists(ctx context.Context, id value.OrderID) (bool, error) {
+	slog.Info("Checking if order exists", "orderID", id.String())
+
+	_, err := r.FindByID(ctx, id)
+	if err != nil {
+		if err.Error() == "order not found: "+id.String() {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }

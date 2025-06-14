@@ -10,13 +10,20 @@ import (
 // APIHandler implements the OpenAPI server interface
 type APIHandler struct {
 	customerController *controller.CustomerController
-	// TODO: Add ProductController and OrderController
+	productController  *controller.ProductController
+	orderController    *controller.OrderController
 }
 
 // NewAPIHandler creates a new API handler
-func NewAPIHandler(customerController *controller.CustomerController) *APIHandler {
+func NewAPIHandler(
+	customerController *controller.CustomerController,
+	productController *controller.ProductController,
+	orderController *controller.OrderController,
+) *APIHandler {
 	return &APIHandler{
 		customerController: customerController,
+		productController:  productController,
+		orderController:    orderController,
 	}
 }
 
@@ -52,64 +59,54 @@ func (h *APIHandler) UpdateCustomer(ctx echo.Context, customerId string) error {
 
 // GetCustomerOrders handles getting customer orders
 func (h *APIHandler) GetCustomerOrders(ctx echo.Context, customerId string, params openapi.GetCustomerOrdersParams) error {
-	// TODO: Implement with OrderController
-	return ctx.JSON(200, []openapi.OrderResponse{})
+	return h.orderController.GetCustomerOrders(ctx, customerId, params)
 }
 
 // Order endpoints
 
 // ListOrders handles listing all orders
 func (h *APIHandler) ListOrders(ctx echo.Context, params openapi.ListOrdersParams) error {
-	// TODO: Implement with OrderController
-	return ctx.JSON(200, []openapi.OrderResponse{})
+	return h.orderController.ListOrders(ctx, params)
 }
 
 // CreateOrder handles order creation
 func (h *APIHandler) CreateOrder(ctx echo.Context) error {
-	// TODO: Implement with OrderController
-	return ctx.JSON(201, openapi.OrderResponse{})
+	return h.orderController.CreateOrder(ctx)
 }
 
 // GetOrder handles getting an order by ID
 func (h *APIHandler) GetOrder(ctx echo.Context, orderId string) error {
-	// TODO: Implement with OrderController
-	return ctx.JSON(200, openapi.OrderResponse{})
+	return h.orderController.GetOrder(ctx, orderId)
 }
 
 // UpdateOrderStatus handles order status update
 func (h *APIHandler) UpdateOrderStatus(ctx echo.Context, orderId string) error {
-	// TODO: Implement with OrderController
-	return ctx.JSON(200, openapi.OrderResponse{})
+	return h.orderController.UpdateOrderStatus(ctx, orderId)
 }
 
 // Product endpoints
 
 // ListProducts handles listing all products
 func (h *APIHandler) ListProducts(ctx echo.Context, params openapi.ListProductsParams) error {
-	// TODO: Implement with ProductController
-	return ctx.JSON(200, []openapi.ProductResponse{})
+	return h.productController.ListProducts(ctx, params)
 }
 
 // CreateProduct handles product creation
 func (h *APIHandler) CreateProduct(ctx echo.Context) error {
-	// TODO: Implement with ProductController
-	return ctx.JSON(201, openapi.ProductResponse{})
+	return h.productController.CreateProduct(ctx)
 }
 
 // DeleteProduct handles product deletion
 func (h *APIHandler) DeleteProduct(ctx echo.Context, productId string) error {
-	// TODO: Implement with ProductController
-	return ctx.NoContent(204)
+	return h.productController.DeleteProduct(ctx, productId)
 }
 
 // GetProduct handles getting a product by ID
 func (h *APIHandler) GetProduct(ctx echo.Context, productId string) error {
-	// TODO: Implement with ProductController
-	return ctx.JSON(200, openapi.ProductResponse{})
+	return h.productController.GetProduct(ctx, productId)
 }
 
 // UpdateProduct handles product update
 func (h *APIHandler) UpdateProduct(ctx echo.Context, productId string) error {
-	// TODO: Implement with ProductController
-	return ctx.JSON(200, openapi.ProductResponse{})
+	return h.productController.UpdateProduct(ctx, productId)
 }

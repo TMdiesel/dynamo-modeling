@@ -81,6 +81,36 @@ func NewOrder(id value.OrderID, customerID value.CustomerID, items []OrderItem) 
 	return order, nil
 }
 
+// NewOrderWithState creates an Order entity with explicit state (for restoration from persistence)
+func NewOrderWithState(
+	id value.OrderID,
+	customerID value.CustomerID,
+	items []OrderItem,
+	status OrderStatus,
+	total value.Money,
+	createdAt time.Time,
+	updatedAt time.Time,
+) (*Order, error) {
+	if len(items) == 0 {
+		return nil, fmt.Errorf("order must have at least one item")
+	}
+
+	order := &Order{
+		id:         id,
+		customerID: customerID,
+		items:      make([]OrderItem, len(items)),
+		status:     status,
+		total:      total,
+		createdAt:  createdAt,
+		updatedAt:  updatedAt,
+	}
+
+	// Copy items
+	copy(order.items, items)
+
+	return order, nil
+}
+
 // ID returns the order ID
 func (o *Order) ID() value.OrderID {
 	return o.id
@@ -171,6 +201,24 @@ func (o *Order) IsConfirmed() bool {
 // IsCancelled checks if the order is cancelled
 func (o *Order) IsCancelled() bool {
 	return o.status == OrderStatusCancelled
+}
+
+// UpdateStatus updates the order status with validation
+func (o *Order) UpdateStatus(newStatus OrderStatus) error {
+	switch newStatus {
+	case OrderStatusPending:
+		return fmt.Errorf("cannot change status back to pending")
+	case OrderStatusConfirmed:
+		return o.Confirm()
+	case OrderStatusShipped:
+		return o.Ship()
+	case OrderStatusDelivered:
+		return o.Deliver()
+	case OrderStatusCancelled:
+		return o.Cancel()
+	default:
+		return fmt.Errorf("invalid order status: %s", newStatus)
+	}
 }
 
 // ItemCount returns the total number of items in the order
