@@ -7,6 +7,7 @@ help:
 	@echo "Available commands:"
 	@echo "  setup           - 開発環境のセットアップ"
 	@echo "  generate        - OpenAPIからGoコードを生成"
+	@echo "  build           - アプリケーションをビルド"
 	@echo "  run             - アプリケーションを起動"
 	@echo "  test            - テストを実行"
 	@echo "  test-coverage   - テストカバレッジを確認"
@@ -27,6 +28,12 @@ setup:
 generate:
 	@echo "Generating OpenAPI code..."
 	oapi-codegen --config=oapi-codegen.config.yaml api/openapi.yml
+
+# アプリケーションビルド
+build:
+	@echo "Building application..."
+	go build -o server cmd/server/main.go
+	@echo "Binary created: ./server"
 
 # アプリケーション起動
 run:
@@ -82,8 +89,11 @@ list-tables:
 
 # ビルド成果物削除
 clean:
+	@echo "Cleaning build artifacts..."
 	go clean
+	rm -f server
 	rm -f coverage.out coverage.html
+	@echo "Build artifacts cleaned"
 
 # 依存関係更新
 deps-update:

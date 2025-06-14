@@ -8,6 +8,14 @@
 *.so
 *.dylib
 
+# Project-specific binaries
+server
+/server
+cmd/server/server
+dist/
+build/
+bin/
+
 # Test binary, built with `go test -c`
 *.test
 
