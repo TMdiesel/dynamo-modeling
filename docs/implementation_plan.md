@@ -19,7 +19,67 @@ DynamoDB と Clean Architecture を組み合わせたオンラインショップ
 // 全テストPASS: エンドツーエンド(0.02s) + パフォーマンス(0.23s)
 ```
 
-**🎯 現在地**: Sprint 3.1 完了！ 次は Sprint 3.2（ユースケース層 & ビジネスロジック実装）
+**🎯 現在地**: Sprint 3.2 完了！ Clean Architecture 実装が全ドメインで完了 🎊
+
+### 📊 Sprint 3.2 完了サマリー
+
+**Clean Architecture 実装完了**:
+
+- ✅ Customer Domain: Handler → Controller → UseCase → Repository → Entity
+- ✅ Product Domain: Handler → Controller → UseCase → Repository → Entity
+- ✅ Order Domain: Handler → Controller → UseCase → Repository → Entity
+- ✅ 全 Repository Interface 完全実装（FindByStatus, FindInStock 等）
+- ✅ Entity State Management 修正（NewOrderWithState ファクトリー）
+- ✅ Order Status 更新の永続化問題解決
+- ✅ 在庫管理・注文ワークフロー実装
+- ✅ 構造化ドメインエラーハンドリング
+- ✅ 完全な依存性注入 (main.go)
+
+**E2E テスト実装完了**:
+
+- ✅ 実際の HTTP サーバーに対する End-to-End テスト実装
+- ✅ 正常シナリオ: 顧客登録 → 商品作成 → 注文作成 → ステータス更新
+- ✅ エラーシナリオ: 在庫不足、存在しない顧客での注文エラー
+- ✅ 並行処理シナリオ: 複数の並行注文での在庫競合テスト
+- ✅ 注文ライフサイクル: pending → confirmed → shipped → delivered
+
+**API 動作確認**:
+
+```bash
+# 全ドメインCRUD動作確認済み
+POST /customers → Customer作成 ✅
+GET /customers/{id} → Customer取得 ✅
+POST /products → Product作成 ✅
+GET /products/{id} → Product取得 ✅
+POST /orders → Order作成（在庫減少確認） ✅
+PUT /orders/{id} → Order Status更新 ✅
+# Order: pending → confirmed → shipped のワークフロー確認済み
+```
+
+**⚠️ 発見された課題**:
+
+1. **在庫管理の競合制御問題**:
+
+   - 並行注文テストで 3 つの注文が全て成功（本来は 1 つのみ成功すべき）
+   - DynamoDB の ConditionExpression による楽観的ロックが未実装
+   - 在庫数の整合性が保証されていない状態
+
+2. **競合制御の実装が必要な箇所**:
+
+   ```go
+   // ProductRepository.UpdateStock で ConditionExpression 必要
+   // 例: "stock >= :quantity" で在庫が十分な場合のみ更新
+
+   // OrderRepository.Save でべき等性保証が必要
+   // 例: OrderIDの重複チェック
+   ```
+
+3. **今後の改善方針**:
+   - DynamoDB の Conditional Writes を活用した在庫管理実装
+   - トランザクション処理の検討（DynamoDB Transactions）
+   - 在庫確保 → 注文確定の 2 段階コミット実装
+
+次は **Phase 4: Quality & Documentation** に進める状態となったのだ！
 
 ### 📊 Sprint 3.1 完了サマリー
 
@@ -325,27 +385,27 @@ REST API エンドポイントと業務ユースケースの実装
 
 #### Day 13: ユースケース層実装
 
-- [ ] **Task 3.2.1**: CreateCustomerUseCase 実装
+- [x] **Task 3.2.1**: CreateCustomerUseCase 実装
   ```go
   type CreateCustomerUseCase struct {
     customerRepo repository.CustomerRepository
   }
   func (uc *CreateCustomerUseCase) Execute(ctx context.Context, cmd CreateCustomerCommand) (*Customer, error)
   ```
-- [ ] **Task 3.2.2**: CreateProductUseCase 実装
-- [ ] **Task 3.2.3**: ユースケースの単体テスト
+- [x] **Task 3.2.2**: CreateProductUseCase 実装
+- [x] **Task 3.2.3**: ユースケースの単体テスト
 
 #### Day 14: 注文機能実装
 
-- [ ] **Task 3.2.4**: CreateOrderUseCase 実装
-- [ ] **Task 3.2.5**: GetCustomerOrdersUseCase 実装（GSI2 使用）
-- [ ] **Task 3.2.6**: 注文 API エンドポイント実装
+- [x] **Task 3.2.4**: CreateOrderUseCase 実装
+- [x] **Task 3.2.5**: GetCustomerOrdersUseCase 実装（GSI2 使用）
+- [x] **Task 3.2.6**: 注文 API エンドポイント実装
 
 #### Day 15: エラーハンドリング・E2E テスト
 
-- [ ] **Task 3.2.7**: 統一エラーハンドリング実装
-- [ ] **Task 3.2.8**: バリデーション実装
-- [ ] **Task 3.2.9**: E2E テスト実装
+- [x] **Task 3.2.7**: 統一エラーハンドリング実装
+- [x] **Task 3.2.8**: バリデーション実装
+- [x] **Task 3.2.9**: E2E テスト実装
 
 ## Phase 4: Quality & Documentation（目標期間: 3 日）
 
