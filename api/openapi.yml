@@ -1,0 +1,930 @@
+openapi: 3.1.0
+info:
+  title: Online Shop API
+  description: Clean Architecture based e-commerce API with DynamoDB backend
+  version: 1.0.0
+  contact:
+    name: Online Shop API Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    # Error schemas
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+
+    ValidationError:
+      type: object
+      required:
+        - code
+        - message
+        - validation_errors
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Validation failed"
+        validation_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that failed validation
+              message:
+                type: string
+                description: Validation error message
+
+    # Customer schemas
+    CustomerRequest:
+      type: object
+      required:
+        - email
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: Customer email address (must be unique)
+          example: "customer@example.com"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Customer full name
+          example: "John Doe"
+
+    CustomerResponse:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Customer unique identifier
+          example: "cust_01234567890abcdef"
+        email:
+          type: string
+          format: email
+          description: Customer email address
+          example: "customer@example.com"
+        name:
+          type: string
+          description: Customer full name
+          example: "John Doe"
+        created_at:
+          type: string
+          format: date-time
+          description: Customer creation timestamp
+          example: "2023-12-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Customer last update timestamp
+          example: "2023-12-01T10:00:00Z"
+
+    # Product schemas
+    ProductRequest:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - stock
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Product name
+          example: "Premium Coffee Beans"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Product description
+          example: "High-quality arabica coffee beans from Colombia"
+        price:
+          type: integer
+          minimum: 1
+          description: Product price in cents (e.g., 1999 = $19.99)
+          example: 1999
+        stock:
+          type: integer
+          minimum: 0
+          description: Available stock quantity
+          example: 100
+
+    ProductResponse:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - price
+        - stock
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Product unique identifier
+          example: "prod_01234567890abcdef"
+        name:
+          type: string
+          description: Product name
+          example: "Premium Coffee Beans"
+        description:
+          type: string
+          description: Product description
+          example: "High-quality arabica coffee beans from Colombia"
+        price:
+          type: integer
+          description: Product price in cents
+          example: 1999
+        stock:
+          type: integer
+          description: Available stock quantity
+          example: 100
+        created_at:
+          type: string
+          format: date-time
+          description: Product creation timestamp
+          example: "2023-12-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Product last update timestamp
+          example: "2023-12-01T10:00:00Z"
+
+    # Order schemas
+    OrderItemRequest:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: string
+          description: Product unique identifier
+          example: "prod_01234567890abcdef"
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantity to order
+          example: 2
+
+    OrderRequest:
+      type: object
+      required:
+        - customer_id
+        - items
+      properties:
+        customer_id:
+          type: string
+          description: Customer unique identifier
+          example: "cust_01234567890abcdef"
+        items:
+          type: array
+          minItems: 1
+          description: Order items
+          items:
+            $ref: '#/components/schemas/OrderItemRequest'
+
+    OrderItemResponse:
+      type: object
+      required:
+        - product_id
+        - quantity
+        - unit_price
+        - total_price
+      properties:
+        product_id:
+          type: string
+          description: Product unique identifier
+          example: "prod_01234567890abcdef"
+        quantity:
+          type: integer
+          description: Ordered quantity
+          example: 2
+        unit_price:
+          type: integer
+          description: Price per unit in cents
+          example: 1999
+        total_price:
+          type: integer
+          description: Total price for this item in cents
+          example: 3998
+
+    OrderResponse:
+      type: object
+      required:
+        - id
+        - customer_id
+        - items
+        - total_amount
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Order unique identifier
+          example: "order_01234567890abcdef"
+        customer_id:
+          type: string
+          description: Customer unique identifier
+          example: "cust_01234567890abcdef"
+        items:
+          type: array
+          description: Order items
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        total_amount:
+          type: integer
+          description: Total order amount in cents
+          example: 3998
+        status:
+          type: string
+          enum: [pending, confirmed, shipped, delivered, cancelled]
+          description: Order status
+          example: "pending"
+        created_at:
+          type: string
+          format: date-time
+          description: Order creation timestamp
+          example: "2023-12-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Order last update timestamp
+          example: "2023-12-01T10:00:00Z"
+
+paths:
+  # Customer endpoints
+  /customers:
+    post:
+      summary: Create a new customer
+      description: Creates a new customer with email and name
+      operationId: createCustomer
+      tags:
+        - customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+      responses:
+        '201':
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List all customers
+      description: Retrieves a list of all customers
+      operationId: listCustomers
+      tags:
+        - customers
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of customers to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of customers to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomerResponse'
+                  total:
+                    type: integer
+                    description: Total number of customers
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /customers/{customerId}:
+    get:
+      summary: Get customer by ID
+      description: Retrieves a specific customer by their ID
+      operationId: getCustomer
+      tags:
+        - customers
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Customer unique identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update customer
+      description: Updates an existing customer's information
+      operationId: updateCustomer
+      tags:
+        - customers
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Customer unique identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+      responses:
+        '200':
+          description: Customer updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete customer
+      description: Deletes a customer by their ID
+      operationId: deleteCustomer
+      tags:
+        - customers
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Customer unique identifier
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Customer deleted successfully
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Product endpoints
+  /products:
+    post:
+      summary: Create a new product
+      description: Creates a new product with name, description, price, and stock
+      operationId: createProduct
+      tags:
+        - products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List all products
+      description: Retrieves a list of all products
+      operationId: listProducts
+      tags:
+        - products
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of products to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of products to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductResponse'
+                  total:
+                    type: integer
+                    description: Total number of products
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/{productId}:
+    get:
+      summary: Get product by ID
+      description: Retrieves a specific product by its ID
+      operationId: getProduct
+      tags:
+        - products
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Product unique identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update product
+      description: Updates an existing product's information
+      operationId: updateProduct
+      tags:
+        - products
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Product unique identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete product
+      description: Deletes a product by its ID
+      operationId: deleteProduct
+      tags:
+        - products
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Product unique identifier
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Product deleted successfully
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Order endpoints
+  /orders:
+    post:
+      summary: Create a new order
+      description: Creates a new order for a customer with specified items
+      operationId: createOrder
+      tags:
+        - orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Customer or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List orders
+      description: Retrieves a list of orders (optionally filtered by customer)
+      operationId: listOrders
+      tags:
+        - orders
+      parameters:
+        - name: customer_id
+          in: query
+          description: Filter orders by customer ID
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of orders to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of orders to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+                  total:
+                    type: integer
+                    description: Total number of orders
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{orderId}:
+    get:
+      summary: Get order by ID
+      description: Retrieves a specific order by its ID
+      operationId: getOrder
+      tags:
+        - orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: Order unique identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update order status
+      description: Updates an order's status (e.g., confirm, ship, deliver, cancel)
+      operationId: updateOrderStatus
+      tags:
+        - orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: Order unique identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, confirmed, shipped, delivered, cancelled]
+                  description: New order status
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Customer Orders endpoint
+  /customers/{customerId}/orders:
+    get:
+      summary: Get customer orders
+      description: Retrieves all orders for a specific customer
+      operationId: getCustomerOrders
+      tags:
+        - customers
+        - orders
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Customer unique identifier
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of orders to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of orders to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Customer orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+                  total:
+                    type: integer
+                    description: Total number of orders for this customer
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: customers
+    description: Customer management operations
+  - name: products
+    description: Product catalog operations
+  - name: orders
+    description: Order management operations

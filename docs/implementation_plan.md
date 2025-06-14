@@ -19,25 +19,35 @@ DynamoDB と Clean Architecture を組み合わせたオンラインショップ
 // 全テストPASS: エンドツーエンド(0.02s) + パフォーマンス(0.23s)
 ```
 
-**🎯 現在地**: Sprint 2.2 完了！ 次は Sprint 3.1（OpenAPI & 基本 API 実装）
+**🎯 現在地**: Sprint 3.1 完了！ 次は Sprint 3.2（ユースケース層 & ビジネスロジック実装）
 
-### 📊 Sprint 2.2 完了サマリー
+### 📊 Sprint 3.1 完了サマリー
 
 **実装済み機能**:
 
-- ✅ CustomerRepository (DynamoDB + guregu/dynamo)
-- ✅ ProductRepository (DynamoDB + guregu/dynamo)
-- ✅ OrderRepository (DynamoDB + guregu/dynamo)
-- ✅ データマッパー（CustomerItem, ProductItem, OrderItem）
-- ✅ 全リポジトリ統合テスト（エンドツーエンド + パフォーマンス）
-- ✅ Clean Architecture 準拠（inmemory リポジトリ削除済み）
+- ✅ Echo v4 Framework 統合
+- ✅ OpenAPI 3.1 仕様書完成（Customer, Product, Order 全エンドポイント）
+- ✅ oapi-codegen 設定・コード生成（Echo 用 ServerInterface）
+- ✅ APIHandler 実装（全 15 エンドポイント）
+- ✅ サーバー起動・エンドポイントテスト成功
+- ✅ JSON request/response 処理
+- ✅ ミドルウェア設定（CORS, Logger, Recover）
 
 **技術的成果**:
 
-- DynamoDB Local での実運用レベル動作確認
-- guregu/dynamo v2 での高パフォーマンス実装
-- 20 件一括操作を 225ms で完了（優秀なパフォーマンス）
-- 構造化ログでの運用観測性確保
+- Echo v4 での OpenAPI-first 開発フロー確立
+- 型安全な API 実装（OpenAPI 仕様からの自動生成）
+- RESTful API 設計（15 エンドポイント正常動作）
+- Graceful Shutdown サーバー実装
+
+**動作確認**:
+
+```bash
+# サーバー起動成功 (Echo v4, port 8080)
+# GET /customers → サンプルデータ取得成功
+# POST /customers → JSON request/response成功
+# 全エンドポイント基本動作確認済み
+```
 
 4. **依存性逆転**: Clean Architecture の原則遵守
 
@@ -235,7 +245,7 @@ REST API エンドポイントと業務ユースケースの実装
 
 #### Day 11: OpenAPI 仕様定義
 
-- [ ] **Task 3.1.1**: OpenAPI 仕様書作成
+- [x] **Task 3.1.1**: OpenAPI 仕様書作成
   ```yaml
   openapi: 3.1.0
   info:
@@ -249,18 +259,67 @@ REST API エンドポイントと業務ユースケースの実装
       post: ...
       get: ...
   ```
-- [ ] **Task 3.1.2**: oapi-codegen 設定
-- [ ] **Task 3.1.3**: API 型とサーバーインターフェース生成
+- [x] **Task 3.1.2**: oapi-codegen 設定
+  ```yaml
+  # oapi-codegen.config.yaml
+  package: openapi
+  generate:
+    models: true
+    echo-server: true
+    embedded-spec: true
+  output: internal/adapter/openapi/generated.go
+  ```
+- [x] **Task 3.1.3**: API 型とサーバーインターフェース生成
+  ```go
+  // 生成されたEcho用ServerInterface
+  type ServerInterface interface {
+    ListCustomers(ctx echo.Context, params ListCustomersParams) error
+    CreateCustomer(ctx echo.Context) error
+    // ... 15のエンドポイント定義済み
+  }
+  ```
 
 #### Day 12: 基本 CRUD API
 
-- [ ] **Task 3.1.4**: Customer CRUD API 実装
+- [x] **Task 3.1.4**: Customer CRUD API 実装
   ```go
-  func (h *CustomerHandler) PostCustomers(ctx echo.Context) error
-  func (h *CustomerHandler) GetCustomer(ctx echo.Context, customerId string) error
+  func (h *APIHandler) CreateCustomer(ctx echo.Context) error
+  func (h *APIHandler) GetCustomer(ctx echo.Context, customerId string) error
+  func (h *APIHandler) ListCustomers(ctx echo.Context, params openapi.ListCustomersParams) error
+  func (h *APIHandler) UpdateCustomer(ctx echo.Context, customerId string) error
+  func (h *APIHandler) DeleteCustomer(ctx echo.Context, customerId string) error
   ```
-- [ ] **Task 3.1.5**: Product CRUD API 実装
-- [ ] **Task 3.1.6**: 基本 API の動作確認
+- [x] **Task 3.1.5**: Product CRUD API 実装
+  ```go
+  func (h *APIHandler) CreateProduct(ctx echo.Context) error
+  func (h *APIHandler) GetProduct(ctx echo.Context, productId string) error
+  func (h *APIHandler) ListProducts(ctx echo.Context, params openapi.ListProductsParams) error
+  func (h *APIHandler) UpdateProduct(ctx echo.Context, productId string) error
+  func (h *APIHandler) DeleteProduct(ctx echo.Context, productId string) error
+  ```
+- [x] **Task 3.1.6**: Order CRUD API 実装
+  ```go
+  func (h *APIHandler) CreateOrder(ctx echo.Context) error
+  func (h *APIHandler) GetOrder(ctx echo.Context, orderId string) error
+  func (h *APIHandler) ListOrders(ctx echo.Context, params openapi.ListOrdersParams) error
+  func (h *APIHandler) UpdateOrderStatus(ctx echo.Context, orderId string) error
+  func (h *APIHandler) GetCustomerOrders(ctx echo.Context, customerId string, params openapi.GetCustomerOrdersParams) error
+  ```
+- [x] **Task 3.1.7**: Echo Server & Middleware 設定
+  ```go
+  e := echo.New()
+  e.Use(middleware.Logger())
+  e.Use(middleware.Recover())
+  e.Use(middleware.CORS())
+  openapi.RegisterHandlers(e, apiHandler)
+  ```
+- [x] **Task 3.1.8**: 基本 API の動作確認
+  ```bash
+  # サーバー起動テスト成功
+  curl http://localhost:8080/customers → [サンプルデータ] ✅
+  curl -X POST http://localhost:8080/customers -d '{"name":"Test","email":"test@example.com"}' → 201 Created ✅
+  # 全15エンドポイント基本動作確認済み
+  ```
 
 ### Sprint 3.2: 業務 API（3 日目標）
 

@@ -1,11 +1,12 @@
 # Makefile for DynamoDB + Clean Architecture Project
 
-.PHONY: help setup run test clean docker-up docker-down create-table
+.PHONY: help setup run test clean docker-up docker-down create-table generate
 
 # デフォルトターゲット
 help:
 	@echo "Available commands:"
 	@echo "  setup           - 開発環境のセットアップ"
+	@echo "  generate        - OpenAPIからGoコードを生成"
 	@echo "  run             - アプリケーションを起動"
 	@echo "  test            - テストを実行"
 	@echo "  test-coverage   - テストカバレッジを確認"
@@ -21,6 +22,11 @@ help:
 setup:
 	go mod tidy
 	go mod download
+
+# OpenAPIからGoコードを生成
+generate:
+	@echo "Generating OpenAPI code..."
+	oapi-codegen --config=oapi-codegen.config.yaml api/openapi.yml
 
 # アプリケーション起動
 run:
