@@ -1,5 +1,90 @@
 # 実装計画書
 
+**目次は自動生成なので編集しない**
+
+- [実装計画書](#実装計画書)
+  - [概要](#概要)
+  - [実装方針](#実装方針)
+    - [基本方針](#基本方針)
+    - [📊 Sprint 3.2 完了サマリー](#-sprint-32-完了サマリー)
+    - [🚨 **エラーハンドリング・冪等性・リトライ課題分析**](#-エラーハンドリング冪等性リトライ課題分析)
+      - [1. **エラーハンドリングの課題**](#1-エラーハンドリングの課題)
+      - [2. **冪等性の課題**](#2-冪等性の課題)
+      - [3. **リトライ安全性の課題**](#3-リトライ安全性の課題)
+      - [4. **トランザクション境界の問題**](#4-トランザクション境界の問題)
+      - [5. **具体的な改善プラン**](#5-具体的な改善プラン)
+      - [6. **Phase 4 での改善項目**](#6-phase-4-での改善項目)
+      - [7. **E2E テストで発見された具体的な問題**](#7-e2e-テストで発見された具体的な問題)
+      - [8. **テスト戦略の拡張**](#8-テスト戦略の拡張)
+      - [9. **優先度の高い修正項目（Phase 4 で必須）**](#9-優先度の高い修正項目phase-4-で必須)
+      - [10. **実装の前提条件と制約**](#10-実装の前提条件と制約)
+      - [12. **リスクアセスメント（Phase 4）**](#12-リスクアセスメントphase-4)
+      - [13. **技術的負債の管理**](#13-技術的負債の管理)
+      - [14. **品質ゲートの定義**](#14-品質ゲートの定義)
+      - [11. **Phase 4 での技術的判断基準**](#11-phase-4-での技術的判断基準)
+  - [Phase 1: Foundation（目標期間: 1 週間）](#phase-1-foundation目標期間-1-週間)
+    - [🎯 目標](#-目標)
+    - [Sprint 1.1: プロジェクト初期化（2 日目標）](#sprint-11-プロジェクト初期化2-日目標)
+      - [Day 1: 環境セットアップ](#day-1-環境セットアップ)
+      - [Day 2: DynamoDB 接続確認](#day-2-dynamodb-接続確認)
+    - [Sprint 1.2: ドメイン層実装（3 日目標）](#sprint-12-ドメイン層実装3-日目標)
+      - [Day 3: 値オブジェクト実装](#day-3-値オブジェクト実装)
+      - [Day 4: エンティティ実装](#day-4-エンティティ実装)
+      - [Day 5: リポジトリインターフェース](#day-5-リポジトリインターフェース)
+  - [Phase 2: Infrastructure（目標期間: 1 週間）](#phase-2-infrastructure目標期間-1-週間)
+    - [🎯 目標](#-目標-1)
+    - [Sprint 2.1: DynamoDB セットアップ（2 日目標）](#sprint-21-dynamodb-セットアップ2-日目標)
+      - [Day 6: テーブル設計実装](#day-6-テーブル設計実装)
+      - [Day 7: AWS SDK 設定](#day-7-aws-sdk-設定)
+    - [Sprint 2.2: リポジトリ実装（3 日目標）](#sprint-22-リポジトリ実装3-日目標)
+      - [Day 8: データマッパー実装](#day-8-データマッパー実装)
+      - [Day 9: Customer リポジトリ](#day-9-customer-リポジトリ)
+      - [Day 10: Product/Order リポジトリ](#day-10-productorder-リポジトリ)
+  - [Phase 3: API Layer（目標期間: 1 週間）](#phase-3-api-layer目標期間-1-週間)
+    - [🎯 目標](#-目標-2)
+    - [Sprint 3.1: OpenAPI \& 基本 API（2 日目標）](#sprint-31-openapi--基本-api2-日目標)
+      - [Day 11: OpenAPI 仕様定義](#day-11-openapi-仕様定義)
+      - [Day 12: 基本 CRUD API](#day-12-基本-crud-api)
+    - [Sprint 3.2: 業務 API（3 日目標）](#sprint-32-業務-api3-日目標)
+      - [Day 13: ユースケース層実装](#day-13-ユースケース層実装)
+      - [Day 14: 注文機能実装](#day-14-注文機能実装)
+      - [Day 15: エラーハンドリング・E2E テスト](#day-15-エラーハンドリングe2e-テスト)
+  - [Phase 4: Quality \& Documentation（目標期間: 3 日）](#phase-4-quality--documentation目標期間-3-日)
+    - [🎯 目標](#-目標-3)
+      - [重要: 現在の優先順位](#重要-現在の優先順位)
+    - [📊 Sprint 4.1: エラーハンドリング・冪等性改善（3 日）](#-sprint-41-エラーハンドリング冪等性改善3-日)
+      - [Day 15: エラーハンドリング統一化](#day-15-エラーハンドリング統一化)
+      - [Day 16: 冪等性・リトライ実装](#day-16-冪等性リトライ実装)
+      - [Day 17: トランザクション・テスト強化](#day-17-トランザクションテスト強化)
+    - [📊 Sprint 3.1 完了サマリー](#-sprint-31-完了サマリー)
+    - [技術スタック確定](#技術スタック確定)
+  - [進捗管理](#進捗管理)
+    - [デイリーチェックポイント](#デイリーチェックポイント)
+    - [ウィークリーレビュー](#ウィークリーレビュー)
+    - [完了条件](#完了条件)
+  - [緊急時対応](#緊急時対応)
+    - [スケジュール遅延時](#スケジュール遅延時)
+    - [技術的課題発生時](#技術的課題発生時)
+    - [リソース不足時](#リソース不足時)
+  - [拡張候補ドメイン](#拡張候補ドメイン)
+    - [Phase 5: 在庫・配送・決済拡張（目標期間: 1 週間）](#phase-5-在庫配送決済拡張目標期間-1-週間)
+      - [Warehouse（倉庫・在庫管理）](#warehouse倉庫在庫管理)
+      - [Shipment（配送管理）](#shipment配送管理)
+      - [Payment（決済管理）](#payment決済管理)
+    - [Phase 5 実装順序](#phase-5-実装順序)
+      - [Sprint 5.1: Warehouse ドメイン（2 日）](#sprint-51-warehouse-ドメイン2-日)
+      - [Sprint 5.2: Payment ドメイン（2 日）](#sprint-52-payment-ドメイン2-日)
+      - [Sprint 5.3: Shipment ドメイン（2 日）](#sprint-53-shipment-ドメイン2-日)
+      - [Sprint 5.4: ドメイン統合（1 日）](#sprint-54-ドメイン統合1-日)
+  - [テスト戦略](#テスト戦略)
+    - [現状の課題と改善方針](#現状の課題と改善方針)
+      - [~~1. inmemory リポジトリの配置問題~~ → 解決済み](#1-inmemory-リポジトリの配置問題--解決済み)
+      - [1. テスト実行環境の統一 ✅](#1-テスト実行環境の統一-)
+      - [3. テストのピラミッド構造](#3-テストのピラミッド構造)
+      - [2. テスト戦略の実装](#2-テスト戦略の実装)
+    - [テスト実行時間の目標](#テスト実行時間の目標)
+    - [テストカバレッジ目標](#テストカバレッジ目標)
+
 ## 概要
 
 DynamoDB と Clean Architecture を組み合わせたオンラインショップ API の段階的実装計画
@@ -79,49 +164,440 @@ PUT /orders/{id} → Order Status更新 ✅
    - トランザクション処理の検討（DynamoDB Transactions）
    - 在庫確保 → 注文確定の 2 段階コミット実装
 
-次は **Phase 4: Quality & Documentation** に進める状態となったのだ！
+### 🚨 **エラーハンドリング・冪等性・リトライ課題分析**
 
-### 📊 Sprint 3.1 完了サマリー
+#### 1. **エラーハンドリングの課題**
 
-**実装済み機能**:
+**現状の問題**:
 
-- ✅ Echo v4 Framework 統合
-- ✅ OpenAPI 3.1 仕様書完成（Customer, Product, Order 全エンドポイント）
-- ✅ oapi-codegen 設定・コード生成（Echo 用 ServerInterface）
-- ✅ APIHandler 実装（全 15 エンドポイント）
-- ✅ サーバー起動・エンドポイントテスト成功
-- ✅ JSON request/response 処理
-- ✅ ミドルウェア設定（CORS, Logger, Recover）
+- ドメインエラーは構造化されているが、インフラエラーとの混在が発生
+- HTTP ステータスコードとドメインエラーの対応が不完全
+- エラーレスポンスの統一性が不十分
 
-**技術的成果**:
+**具体的な問題箇所**:
 
-- Echo v4 での OpenAPI-first 開発フロー確立
-- 型安全な API 実装（OpenAPI 仕様からの自動生成）
-- RESTful API 設計（15 エンドポイント正常動作）
-- Graceful Shutdown サーバー実装
+```go
+// 現在の問題: エラー分類が曖昧
+func (c *OrderController) CreateOrder(ctx echo.Context) error {
+    order, err := c.createOrderUseCase.Execute(context.Background(), command)
+    if err != nil {
+        // 全てのエラーを400 BadRequestで返している
+        return c.presenter.PresentError(ctx, http.StatusBadRequest, "creation_failed", err.Error())
+    }
+}
 
-**動作確認**:
-
-```bash
-# サーバー起動成功 (Echo v4, port 8080)
-# GET /customers → サンプルデータ取得成功
-# POST /customers → JSON request/response成功
-# 全エンドポイント基本動作確認済み
+// 改善すべき点: エラータイプに応じた適切なHTTPステータス
+// - CUSTOMER_NOT_FOUND → 404 Not Found
+// - INSUFFICIENT_STOCK → 409 Conflict
+// - REPOSITORY_ERROR → 500 Internal Server Error
 ```
 
-4. **依存性逆転**: Clean Architecture の原則遵守
+#### 2. **冪等性の課題**
 
-### 技術スタック確定
+**現状の問題**:
 
+- Order 作成が非冪等（同じリクエストで複数回実行すると重複注文が発生）
+- Customer 作成で Email 重複チェックはあるが、競合時の処理が不完全
+- Product 在庫更新が非冪等（同時更新で整合性が崩れる）
+
+**冪等性が必要な操作**:
+
+```go
+// Order作成の冪等性実装が必要
+type CreateOrderUseCase struct {
+    // Idempotency Keyを受け取る仕組みが必要
+}
+
+// 実装すべき冪等性パターン:
+// 1. クライアント指定のIdempotency Key
+// 2. リクエストハッシュベースの重複検知
+// 3. 操作結果のキャッシュ（24時間）
 ```
-言語: Go 1.22
-Web Framework: Echo v4
-DB: DynamoDB (Local)
-コード生成: oapi-codegen
-テスト: testify + gomock
-コンテナ: Docker + docker-compose
-AWS SDK: aws-sdk-go-v2
+
+#### 3. **リトライ安全性の課題**
+
+**現状の問題**:
+
+- DynamoDB 接続エラー時のリトライが危険（在庫の二重減算リスク）
+- 部分的な成功状態からの復旧処理がない
+- タイムアウト処理が不十分
+
+**リトライ可能 vs 不可能な操作**:
+
+```go
+// リトライ安全（冪等）
+func (r *Repository) FindByID(ctx context.Context, id ID) error {
+    // 読み取り操作：何度実行しても同じ結果
+}
+
+// リトライ危険（非冪等）
+func (uc *CreateOrderUseCase) Execute(ctx context.Context, cmd Command) error {
+    // 1. 在庫確認 ← リトライ安全
+    // 2. 在庫減算 ← リトライ危険（ConditionExpression未実装）
+    // 3. 注文保存 ← リトライ危険（重複チェック未実装）
+}
 ```
+
+#### 4. **トランザクション境界の問題**
+
+**現状の問題**:
+
+- 注文作成で「在庫減算」→「注文保存」が分離されており、中間失敗状態が発生可能
+- ロールバック処理が未実装
+- 部分的成功からの復旧ロジックがない
+
+**改善が必要なトランザクション**:
+
+```go
+// 問題のあるトランザクション境界
+func (uc *CreateOrderUseCase) Execute(ctx context.Context, cmd CreateOrderCommand) (*entity.Order, error) {
+    // ここで失敗すると在庫だけ減って注文が保存されない
+    for _, item := range cmd.Items {
+        product.ReserveStock(item.Quantity) // ←【危険】
+        uc.productRepo.Save(ctx, product)   // ←【危険】
+    }
+
+    // ここで失敗すると在庫は減ったが注文が作成されない状態
+    err := uc.orderRepo.Save(ctx, order)   // ←【危険】
+    if err != nil {
+        // ロールバック処理が未実装 ←【問題】
+        return nil, err
+    }
+}
+```
+
+#### 5. **具体的な改善プラン**
+
+**Phase 4.1: エラーハンドリング改善（1 日）**
+
+```go
+// 1. 構造化エラーレスポンス
+type APIError struct {
+    Code       string            `json:"code"`
+    Message    string            `json:"message"`
+    Details    map[string]string `json:"details,omitempty"`
+    RetryAfter *int             `json:"retry_after,omitempty"`
+}
+
+// 2. エラータイプ別HTTPステータス
+func (c *Controller) mapDomainErrorToHTTP(err error) (int, APIError) {
+    switch {
+    case isDomainError(err, "NOT_FOUND"):
+        return http.StatusNotFound, APIError{...}
+    case isDomainError(err, "INSUFFICIENT_STOCK"):
+        return http.StatusConflict, APIError{...}
+    case isDomainError(err, "VALIDATION_ERROR"):
+        return http.StatusBadRequest, APIError{...}
+    default:
+        return http.StatusInternalServerError, APIError{...}
+    }
+}
+```
+
+**Phase 4.2: 冪等性実装（1 日）**
+
+```go
+// 1. Idempotency Key機能
+type IdempotencyService interface {
+    IsProcessed(ctx context.Context, key string) (bool, interface{}, error)
+    StoreResult(ctx context.Context, key string, result interface{}) error
+}
+
+// 2. 注文作成の冪等性
+func (uc *CreateOrderUseCase) Execute(ctx context.Context, cmd CreateOrderCommand) (*entity.Order, error) {
+    // クライアント指定またはリクエストハッシュベースのキー
+    idempotencyKey := cmd.IdempotencyKey
+    if idempotencyKey == "" {
+        idempotencyKey = generateHash(cmd)
+    }
+
+    // 既に処理済みかチェック
+    if processed, result, _ := uc.idempotency.IsProcessed(ctx, idempotencyKey); processed {
+        return result.(*entity.Order), nil
+    }
+
+    // 実際の処理...
+}
+```
+
+**Phase 4.3: 競合制御実装（1 日）**
+
+```go
+// 1. DynamoDB Conditional Writes
+func (r *DynamoProductRepository) Save(ctx context.Context, product *entity.Product) error {
+    item := ProductToItem(product)
+
+    // 楽観的ロック：現在の在庫数が期待値と一致する場合のみ更新
+    condition := expression.Name("Stock").Equal(expression.Value(product.PreviousStock()))
+
+    err := r.table.Put(item).If(condition).Run(ctx)
+    if err != nil {
+        if isConditionalCheckFailedException(err) {
+            return domain.NewDomainError("CONCURRENT_MODIFICATION",
+                "Product was modified by another request", err)
+        }
+        return err
+    }
+    return nil
+}
+
+// 2. DynamoDB Transactions使用
+func (uc *CreateOrderUseCase) ExecuteWithTransaction(ctx context.Context, cmd CreateOrderCommand) error {
+    // すべての操作を単一トランザクションで実行
+    transactionItems := []types.TransactWriteItem{
+        // 在庫減算（条件付き）
+        {Update: &types.Update{...}},
+        // 注文保存
+        {Put: &types.Put{...}},
+    }
+
+    _, err := r.client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+        TransactItems: transactionItems,
+    })
+    return err
+}
+```
+
+#### 6. **Phase 4 での改善項目**
+
+- [ ] **Task 4.1.1**: 構造化エラーレスポンス実装
+- [ ] **Task 4.1.2**: エラータイプ別 HTTP ステータスマッピング
+- [ ] **Task 4.1.3**: リトライ可能エラーの識別機能
+- [ ] **Task 4.2.1**: Idempotency Key 機能実装
+- [ ] **Task 4.2.2**: 注文作成の冪等性実装
+- [ ] **Task 4.2.3**: 重複処理検知・結果キャッシュ
+- [ ] **Task 4.3.1**: DynamoDB Conditional Writes 実装
+- [ ] **Task 4.3.2**: 在庫管理の競合制御実装
+- [ ] **Task 4.3.3**: DynamoDB Transactions 適用
+- [ ] **Task 4.4.1**: サーキットブレーカー実装（基本）
+- [ ] **Task 4.4.2**: エクスポネンシャルバックオフリトライ
+- [ ] **Task 4.4.3**: 部分失敗からの復旧ロジック
+
+#### 7. **E2E テストで発見された具体的な問題**
+
+**並行処理での在庫管理問題**:
+
+E2E テストの `TestE2E_ConcurrentOrders` で以下の問題が発覚:
+
+- 在庫 5 個の商品に対して、3 つの並行注文（各 3 個）が全て成功
+- 理想的には 1 つのみ成功し、残り 2 つは在庫不足エラーとなるべき
+- 在庫が負数（-4 個）になる競合状態が発生
+
+```go
+// 実際の問題コード（internal/usecase/order_usecase.go）
+func (uc *CreateOrderUseCase) Execute(ctx context.Context, cmd CreateOrderCommand) (*entity.Order, error) {
+    // 在庫確認（時点A）
+    product, _ := uc.productRepo.FindByID(ctx, productID)
+
+    // 在庫予約（時点B）- この間に他のリクエストが割り込み可能
+    err = product.ReserveStock(itemCmd.Quantity)
+    if err != nil {
+        return nil, domain.NewDomainError("STOCK_RESERVATION_FAILED", ...)
+    }
+
+    // 在庫更新（時点C）- 楽観的ロックなしで更新
+    err = uc.productRepo.Save(ctx, product)
+    // ←【危険】: 他のリクエストの変更を上書きする可能性
+}
+```
+
+**HTTP ステータスコードの不統一問題**:
+
+```go
+// 現在の問題例
+func (c *OrderController) CreateOrder(ctx echo.Context) error {
+    order, err := c.createOrderUseCase.Execute(context.Background(), command)
+    if err != nil {
+        // 全てのエラーが 400 BadRequest として返される
+        return c.presenter.PresentError(ctx, http.StatusBadRequest, "creation_failed", err.Error())
+    }
+}
+
+// 改善が必要:
+// - CUSTOMER_NOT_FOUND → 404 Not Found
+// - INSUFFICIENT_STOCK → 409 Conflict
+// - CONCURRENT_MODIFICATION → 409 Conflict
+// - VALIDATION_ERROR → 400 Bad Request
+// - REPOSITORY_ERROR → 500 Internal Server Error
+```
+
+#### 8. **テスト戦略の拡張**
+
+```go
+// エラーハンドリングの統合テスト
+func TestErrorHandling_ConcurrentStockUpdate(t *testing.T) {
+    // 同時在庫更新でConflictエラーが適切に処理されることをテスト
+}
+
+func TestIdempotency_DuplicateOrderCreation(t *testing.T) {
+    // 同じIdempotency Keyで複数回リクエストしても同じ結果が返ることをテスト
+}
+
+func TestRetry_PartialFailureRecovery(t *testing.T) {
+    // 部分失敗状態からの復旧処理をテスト
+}
+
+func TestConcurrentStock_RaceCondition(t *testing.T) {
+    // E2Eテストで発見された在庫競合問題の単体テスト版
+    // 在庫5個に対して並行注文3つ（各3個）で適切にエラーハンドリングされることを確認
+}
+```
+
+#### 9. **優先度の高い修正項目（Phase 4 で必須）**
+
+**🚨 Critical レベル（必須修正）**:
+
+1. **在庫管理の競合制御**
+
+   - DynamoDB Conditional Writes による楽観的ロック実装
+   - 理由: E2E テストで在庫がマイナスになる問題を発見
+
+2. **構造化エラーレスポンス**
+
+   - エラータイプ別 HTTP ステータスコードマッピング
+   - 理由: 全エラーが 400 で返される問題
+
+3. **Order 作成の冪等性**
+   - Idempotency Key 機能実装
+   - 理由: 重複注文防止が未実装
+
+**⚠️ High レベル（推奨修正）**:
+
+4. **DynamoDB Transactions 適用**
+
+   - 在庫減算と注文保存の原子性保証
+   - 理由: 部分失敗状態の回避
+
+5. **リトライ機構の安全化**
+   - 冪等性チェック付きリトライ実装
+   - 理由: 危険な操作の重複実行防止
+
+**📝 Medium レベル（時間があれば）**:
+
+6. **サーキットブレーカー実装**
+   - DynamoDB 接続エラー時の障害拡散防止
+   - 理由: システム安定性向上
+
+#### 10. **実装の前提条件と制約**
+
+**技術的制約**:
+
+- DynamoDB Local 環境での開発（本番は AWS DynamoDB）
+- Single Table Design パターンの維持
+- Clean Architecture 原則の遵守
+- Go 1.21+の機能活用
+
+**パフォーマンス要件**:
+
+- API 応答時間: 95 パーセンタイル < 500ms
+- 並行注文処理: 80%以上の成功率維持
+- E2E テスト実行時間: < 30 秒
+
+**可観測性要件**:
+
+- 構造化ログ（JSON 形式）
+- エラー種別の詳細情報
+- パフォーマンスメトリクス取得可能性
+
+#### 12. **リスクアセスメント（Phase 4）**
+
+**🚨 高リスク（即座に対応が必要）**:
+
+| リスク項目             | 影響度 | 発生確率 | 対策                             | 期限   |
+| ---------------------- | ------ | -------- | -------------------------------- | ------ |
+| 在庫競合問題           | 高     | 100%     | DynamoDB Conditional Writes 実装 | Day 15 |
+| 重複注文               | 高     | 80%      | Idempotency Key 実装             | Day 16 |
+| エラーレスポンス不統一 | 中     | 100%     | 構造化エラーレスポンス           | Day 15 |
+
+**⚠️ 中リスク（計画的に対応）**:
+
+| リスク項目         | 影響度 | 発生確率 | 対策                       | 期限     |
+| ------------------ | ------ | -------- | -------------------------- | -------- |
+| 部分失敗状態       | 高     | 40%      | DynamoDB Transactions 適用 | Day 17   |
+| DynamoDB 接続障害  | 中     | 30%      | サーキットブレーカー実装   | Phase 後 |
+| パフォーマンス劣化 | 中     | 50%      | ベンチマークテスト強化     | Day 17   |
+
+**📝 低リスク（監視のみ）**:
+
+- テストデータのクリーンアップ忘れ → テストスイート改善で対応
+- 開発環境固有の問題 → 本番環境テストで検証
+- ドキュメント更新漏れ → Phase 4 完了時に一括確認
+
+#### 13. **技術的負債の管理**
+
+**現在の技術的負債**:
+
+1. **エラーハンドリングの一貫性不足**
+
+   - 負債レベル: 高
+   - 解決タイミング: Phase 4 必須
+   - 影響: API の信頼性、デバッグ困難性
+
+2. **冪等性の未実装**
+
+   - 負債レベル: 高
+   - 解決タイミング: Phase 4 必須
+   - 影響: 重複処理、データ整合性
+
+3. **ログ出力の構造化不足**
+
+   - 負債レベル: 中
+   - 解決タイミング: Phase 4 で部分改善
+   - 影響: 運用監視の困難性
+
+4. **テストカバレッジの偏り**
+   - 負債レベル: 中
+   - 解決タイミング: 継続的改善
+   - 影響: バグ検出能力
+
+**許容可能な負債**:
+
+- パフォーマンス最適化（MVP 段階では不要）
+- 詳細なメトリクス収集（基本機能安定後）
+- 複雑なビジネスロジック（要件が固まってから）
+
+#### 14. **品質ゲートの定義**
+
+**Phase 4 完了の必須条件**:
+
+✅ **機能品質**:
+
+- [ ] 全 E2E テストが pass する
+- [ ] 並行処理テストでエラーハンドリングが適切
+- [ ] 冪等性テストが成功する
+- [ ] レスポンス時間が要件を満たす
+
+✅ **コード品質**:
+
+- [ ] golint、go vet、gofmt が pass
+- [ ] テストカバレッジ > 80%
+- [ ] サイクロマティック複雑度 < 10
+- [ ] 構造化ログが出力される
+
+✅ **ドキュメント品質**:
+
+- [ ] API 仕様書が最新
+- [ ] README.md が更新済み
+- [ ] エラーハンドリングガイド作成
+- [ ] 運用手順書作成
+
+#### 11. **Phase 4 での技術的判断基準**
+
+**実装を進める基準**:
+
+- 既存の E2E テストが通ること
+- 新機能追加時は必ずテストも追加
+- エラーハンドリングの改善が先行
+
+**実装を後回しにする基準**:
+
+- パフォーマンス最適化（機能完成後）
+- 詳細なメトリクス収集（基本機能安定後）
+- UI/UX 改善（API 安定後）
+
+---
+
+---
 
 ## Phase 1: Foundation（目標期間: 1 週間）
 
@@ -411,25 +887,113 @@ REST API エンドポイントと業務ユースケースの実装
 
 ### 🎯 目標
 
-品質向上とドキュメント整備
+E2E テストで発見された**クリティカルな品質課題**の解決と基本的なドキュメント整備
 
-#### Day 16: 品質向上
+#### 重要: 現在の優先順位
 
-- [ ] **Task 4.1**: テストカバレッジ向上（目標 80%以上）
-- [ ] **Task 4.2**: ログ実装（slog 使用）
-- [ ] **Task 4.3**: メトリクス実装（基本的なもの）
+1. **エラーハンドリング・冪等性・競合制御** (Critical)
+2. **基本的な品質向上・ドキュメント** (Important)
 
-#### Day 17: パフォーマンス・セキュリティ
+### 📊 Sprint 4.1: エラーハンドリング・冪等性改善（3 日）
 
-- [ ] **Task 4.4**: DynamoDB クエリ最適化確認
-- [ ] **Task 4.5**: セキュリティヘッダー追加
-- [ ] **Task 4.6**: レート制限実装（基本的なもの）
+#### Day 15: エラーハンドリング統一化
 
-#### Day 18: ドキュメント整備
+**重要**: E2E テストで発見された問題への対策を最優先で実装
 
-- [ ] **Task 4.7**: API 仕様書完成
-- [ ] **Task 4.8**: README 更新（開発環境構築手順）
-- [ ] **Task 4.9**: 学習振り返りドキュメント作成
+- [ ] **Task 4.1.1**: 構造化エラーレスポンス実装
+
+  - APIError 構造体定義（Code, Message, Details, RetryAfter）
+  - ドメインエラーから HTTP ステータスへのマッピング関数
+  - Presenter 層でのエラーレスポンス統一化
+
+- [ ] **Task 4.1.2**: 在庫管理競合制御実装
+
+  - DynamoDB Conditional Writes 実装
+  - product.ReserveStock()での楽観的ロック追加
+  - ConditionalCheckFailedException 処理
+
+- [ ] **Task 4.1.3**: エラーハンドリングの単体テスト
+  - 並行在庫更新での Conflict エラーテスト
+  - HTTP ステータスマッピングテスト
+  - エラーレスポンス形式テスト
+
+#### Day 16: 冪等性・リトライ実装
+
+- [ ] **Task 4.2.1**: Idempotency Key 機能実装
+
+  - IdempotencyService interface 定義
+  - DynamoDB ベースのキー管理実装
+  - 24 時間 TTL 設定
+
+- [ ] **Task 4.2.2**: Order 作成の冪等性実装
+
+  - CreateOrderCommand に IdempotencyKey 追加
+  - リクエストハッシュベースのキー生成
+  - 処理済みリクエストの結果返却
+
+- [ ] **Task 4.2.3**: リトライ安全性の改善
+  - 冪等性チェック付きリトライ実装
+  - エクスポネンシャルバックオフ
+  - リトライ可能エラーの分類
+
+#### Day 17: トランザクション・テスト強化
+
+- [ ] **Task 4.3.1**: DynamoDB Transactions 適用
+
+  - TransactWriteItems 使用での注文作成
+  - 在庫減算と注文保存の原子性保証
+  - トランザクション失敗時のエラーハンドリング
+
+- [ ] **Task 4.3.2**: E2E テスト拡張
+
+  - 冪等性テスト追加
+  - 並行処理での整合性テスト強化
+  - エラーレスポンス検証テスト
+
+- [ ] **Task 4.3.3**: パフォーマンス指標測定
+  - レスポンス時間の 95 パーセンタイル測定
+  - 並行処理成功率の測定
+  - リソース使用量の監視
+
+### 📊 Sprint 3.1 完了サマリー
+
+**実装済み機能**:
+
+- ✅ Echo v4 Framework 統合
+- ✅ OpenAPI 3.1 仕様書完成（Customer, Product, Order 全エンドポイント）
+- ✅ oapi-codegen 設定・コード生成（Echo 用 ServerInterface）
+- ✅ APIHandler 実装（全 15 エンドポイント）
+- ✅ サーバー起動・エンドポイントテスト成功
+- ✅ JSON request/response 処理
+- ✅ ミドルウェア設定（CORS, Logger, Recover）
+
+**技術的成果**:
+
+- Echo v4 での OpenAPI-first 開発フロー確立
+- 型安全な API 実装（OpenAPI 仕様からの自動生成）
+- RESTful API 設計（15 エンドポイント正常動作）
+- Graceful Shutdown サーバー実装
+
+**動作確認**:
+
+```bash
+# サーバー起動成功 (Echo v4, port 8080)
+# GET /customers → サンプルデータ取得成功
+# POST /customers → JSON request/response成功
+# 全エンドポイント基本動作確認済み
+```
+
+### 技術スタック確定
+
+```
+言語: Go 1.22
+Web Framework: Echo v4
+DB: DynamoDB (Local)
+コード生成: oapi-codegen
+テスト: testify + gomock
+コンテナ: Docker + docker-compose
+AWS SDK: aws-sdk-go-v2
+```
 
 ## 進捗管理
 
