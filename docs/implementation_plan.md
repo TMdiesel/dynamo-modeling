@@ -35,11 +35,11 @@ AWS SDK: aws-sdk-go-v2
 
 #### Day 1: 環境セットアップ
 
-- [ ] **Task 1.1.1**: Go module 初期化
+- [x] **Task 1.1.1**: Go module 初期化
   ```bash
   go mod init dynamo-modeling
   ```
-- [ ] **Task 1.1.2**: プロジェクト構造作成
+- [x] **Task 1.1.2**: プロジェクト構造作成
   ```
   cmd/server/main.go
   internal/domain/entity/
@@ -55,13 +55,13 @@ AWS SDK: aws-sdk-go-v2
   docker-compose.yml
   Makefile
   ```
-- [ ] **Task 1.1.3**: 基本依存関係追加
+- [x] **Task 1.1.3**: 基本依存関係追加
   ```bash
   go get github.com/labstack/echo/v4
   go get github.com/aws/aws-sdk-go-v2/service/dynamodb
   go get github.com/stretchr/testify
   ```
-- [ ] **Task 1.1.4**: Docker Compose 設定
+- [x] **Task 1.1.4**: Docker Compose 設定
   ```yaml
   services:
     dynamodb-local:
@@ -73,37 +73,37 @@ AWS SDK: aws-sdk-go-v2
 
 #### Day 2: DynamoDB 接続確認
 
-- [ ] **Task 1.1.5**: DynamoDB Local 起動確認
-- [ ] **Task 1.1.6**: Go から DynamoDB Local 接続テスト
-- [ ] **Task 1.1.7**: テーブル作成スクリプト作成
+- [x] **Task 1.1.5**: DynamoDB Local 起動確認
+- [x] **Task 1.1.6**: Go から DynamoDB Local 接続テスト
+- [x] **Task 1.1.7**: テーブル作成スクリプト作成
 
 ### Sprint 1.2: ドメイン層実装（3 日目標）
 
 #### Day 3: 値オブジェクト実装
 
-- [ ] **Task 1.2.1**: 基本型定義
+- [x] **Task 1.2.1**: 基本型定義
   ```go
   type CustomerID string
   type ProductID string
   type OrderID string
   type Money int // cents
   ```
-- [ ] **Task 1.2.2**: Email 値オブジェクト
+- [x] **Task 1.2.2**: Email 値オブジェクト
   ```go
   type Email struct { value string }
   func NewEmail(email string) (Email, error)
   ```
-- [ ] **Task 1.2.3**: Money 値オブジェクト
+- [x] **Task 1.2.3**: Money 値オブジェクト
   ```go
   type Money struct { cents int }
   func NewMoney(amount int) (Money, error)
   func (m Money) Add(other Money) Money
   ```
-- [ ] **Task 1.2.4**: 値オブジェクトの単体テスト
+- [x] **Task 1.2.4**: 値オブジェクトの単体テスト
 
 #### Day 4: エンティティ実装
 
-- [ ] **Task 1.2.5**: Customer エンティティ
+- [x] **Task 1.2.5**: Customer エンティティ
   ```go
   type Customer struct {
     id CustomerID
@@ -113,13 +113,13 @@ AWS SDK: aws-sdk-go-v2
   }
   func NewCustomer(...) *Customer
   ```
-- [ ] **Task 1.2.6**: Product エンティティ
-- [ ] **Task 1.2.7**: Order エンティティ（基本構造）
-- [ ] **Task 1.2.8**: エンティティの単体テスト
+- [x] **Task 1.2.6**: Product エンティティ
+- [x] **Task 1.2.7**: Order エンティティ（基本構造）
+- [x] **Task 1.2.8**: エンティティの単体テスト
 
 #### Day 5: リポジトリインターフェース
 
-- [ ] **Task 1.2.9**: CustomerRepository インターフェース
+- [x] **Task 1.2.9**: CustomerRepository インターフェース
   ```go
   type CustomerRepository interface {
     Save(ctx context.Context, customer *Customer) error
@@ -127,9 +127,9 @@ AWS SDK: aws-sdk-go-v2
     FindByEmail(ctx context.Context, email Email) (*Customer, error)
   }
   ```
-- [ ] **Task 1.2.10**: ProductRepository インターフェース
-- [ ] **Task 1.2.11**: OrderRepository インターフェース
-- [ ] **Task 1.2.12**: インメモリリポジトリ実装（テスト用）
+- [x] **Task 1.2.10**: ProductRepository インターフェース
+- [x] **Task 1.2.11**: OrderRepository インターフェース
+- [x] **Task 1.2.12**: インメモリリポジトリ実装（テスト用）
 
 ## Phase 2: Infrastructure（目標期間: 1 週間）
 
@@ -141,33 +141,33 @@ DynamoDB 接続とデータ永続化機能の実装
 
 #### Day 6: テーブル設計実装
 
-- [ ] **Task 2.1.1**: DynamoDB テーブル作成スクリプト
+- [x] **Task 2.1.1**: DynamoDB テーブル作成スクリプト
   ```bash
   aws dynamodb create-table --table-name OnlineShop \
     --attribute-definitions AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S \
     --key-schema AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE \
     --endpoint-url http://localhost:8000
   ```
-- [ ] **Task 2.1.2**: GSI1, GSI2 作成
-- [ ] **Task 2.1.3**: テーブル作成の自動化（Makefile）
+- [x] **Task 2.1.2**: GSI1, GSI2 作成
+- [x] **Task 2.1.3**: テーブル作成の自動化（Makefile）
 
 #### Day 7: AWS SDK 設定
 
-- [ ] **Task 2.1.4**: DynamoDB クライアント設定
+- [x] **Task 2.1.4**: DynamoDB クライアント設定（guregu/dynamo 使用）
   ```go
   cfg, err := config.LoadDefaultConfig(ctx,
     config.WithEndpointResolver(aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
       return aws.Endpoint{URL: "http://localhost:8000"}, nil
     })))
   ```
-- [ ] **Task 2.1.5**: 設定の環境変数化
-- [ ] **Task 2.1.6**: 接続ヘルスチェック実装
+- [x] **Task 2.1.5**: 設定の環境変数化
+- [x] **Task 2.1.6**: 接続ヘルスチェック実装
 
 ### Sprint 2.2: リポジトリ実装（3 日目標）
 
 #### Day 8: データマッパー実装
 
-- [ ] **Task 2.2.1**: Customer データマッパー
+- [x] **Task 2.2.1**: Customer データマッパー（CustomerItem struct 使用）
   ```go
   func CustomerToItem(customer *entity.Customer) (map[string]types.AttributeValue, error)
   func ItemToCustomer(item map[string]types.AttributeValue) (*entity.Customer, error)
@@ -177,12 +177,12 @@ DynamoDB 接続とデータ永続化機能の実装
 
 #### Day 9: Customer リポジトリ
 
-- [ ] **Task 2.2.4**: DynamoCustomerRepository 実装
+- [x] **Task 2.2.4**: DynamoCustomerRepository 実装（guregu/dynamo 使用）
   ```go
   func (r *DynamoCustomerRepository) Save(ctx context.Context, customer *entity.Customer) error
   func (r *DynamoCustomerRepository) FindByID(ctx context.Context, id value.CustomerID) (*entity.Customer, error)
   ```
-- [ ] **Task 2.2.5**: Customer リポジトリの統合テスト
+- [x] **Task 2.2.5**: Customer リポジトリの統合テスト
 
 #### Day 10: Product/Order リポジトリ
 

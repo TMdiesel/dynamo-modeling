@@ -9,8 +9,9 @@ help:
 	@echo "  run             - アプリケーションを起動"
 	@echo "  test            - テストを実行"
 	@echo "  test-coverage   - テストカバレッジを確認"
-	@echo "  docker-up       - DynamoDB Localをdocker-composeで起動"
+	@echo "  docker-up       - DynamoDB Local + Admin GUIをdocker-composeで起動"
 	@echo "  docker-down     - docker-composeを停止"
+	@echo "  admin           - DynamoDB Admin GUIをブラウザで開く"
 	@echo "  test-connection - DynamoDB Local接続テスト"
 	@echo "  create-table    - DynamoDBにテーブルを作成"
 	@echo "  list-tables     - DynamoDBのテーブル一覧を表示"
@@ -44,6 +45,18 @@ docker-up:
 # Docker停止
 docker-down:
 	docker-compose down
+
+# DynamoDB Admin GUIをブラウザで開く
+admin:
+	@echo "Opening DynamoDB Admin GUI..."
+	@echo "DynamoDB Admin GUI: http://localhost:8001"
+	@if command -v open >/dev/null 2>&1; then \
+		open http://localhost:8001; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open http://localhost:8001; \
+	else \
+		echo "Please open http://localhost:8001 in your browser"; \
+	fi
 
 # DynamoDBテーブル作成
 create-table:
