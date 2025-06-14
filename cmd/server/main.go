@@ -12,9 +12,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"dynamo-modeling/internal/adapter/controller"
 	"dynamo-modeling/internal/adapter/openapi"
+	"dynamo-modeling/internal/adapter/presenter"
+	"dynamo-modeling/internal/adapter/repository"
 	"dynamo-modeling/internal/handler"
 	"dynamo-modeling/internal/infrastructure"
+	"dynamo-modeling/internal/usecase"
 )
 
 func main() {
@@ -23,7 +27,7 @@ func main() {
 
 	// DynamoDB設定
 	dbConfig := infrastructure.DynamoDBConfig{
-		Region:    "us-east-1",
+		Region:    "ap-northeast-1",
 		Endpoint:  "http://localhost:8000", // DynamoDB Local
 		TableName: "OnlineShop",
 	}
@@ -36,8 +40,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ハンドラー初期化
-	apiHandler := handler.NewAPIHandler(dbClient)
+	// Repository層を初期化
+	customerRepo := repository.NewDynamoCustomerRepository(dbClient)
+
+	// UseCase層を初期化
+	createCustomerUseCase := usecase.NewCreateCustomerUseCase(customerRepo)
+	getCustomerUseCase := usecase.NewGetCustomerUseCase(customerRepo)
+	listCustomersUseCase := usecase.NewListCustomersUseCase(customerRepo)
+	updateCustomerUseCase := usecase.NewUpdateCustomerUseCase(customerRepo)
+	deleteCustomerUseCase := usecase.NewDeleteCustomerUseCase(customerRepo)
+
+	// Presenter層を初期化
+	customerPresenter := presenter.NewCustomerPresenter()
+
+	// Controller層を初期化
+	customerController := controller.NewCustomerController(
+		createCustomerUseCase,
+		getCustomerUseCase,
+		listCustomersUseCase,
+		updateCustomerUseCase,
+		deleteCustomerUseCase,
+		customerPresenter,
+	)
+
+	// Handler層を初期化
+	apiHandler := handler.NewAPIHandler(customerController)
 
 	// Echoサーバー作成
 	e := echo.New()

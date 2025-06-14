@@ -1,152 +1,115 @@
 package handler
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/labstack/echo/v4"
 
+	"dynamo-modeling/internal/adapter/controller"
 	"dynamo-modeling/internal/adapter/openapi"
-	"dynamo-modeling/internal/infrastructure"
 )
 
 // APIHandler implements the OpenAPI server interface
 type APIHandler struct {
-	dbClient *infrastructure.DynamoDBClient
+	customerController *controller.CustomerController
+	// TODO: Add ProductController and OrderController
 }
 
 // NewAPIHandler creates a new API handler
-func NewAPIHandler(dbClient *infrastructure.DynamoDBClient) *APIHandler {
+func NewAPIHandler(customerController *controller.CustomerController) *APIHandler {
 	return &APIHandler{
-		dbClient: dbClient,
+		customerController: customerController,
 	}
 }
 
 // Verify APIHandler implements ServerInterface
 var _ openapi.ServerInterface = (*APIHandler)(nil)
 
+// Customer endpoints
+
 // ListCustomers handles listing all customers
 func (h *APIHandler) ListCustomers(ctx echo.Context, params openapi.ListCustomersParams) error {
-	now := time.Now()
-
-	// サンプルデータを返す（実際の実装では repository から取得）
-	customers := []openapi.CustomerResponse{
-		{
-			Id:        "customer-1",
-			Name:      "Sample Customer 1",
-			Email:     "customer1@example.com",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		{
-			Id:        "customer-2",
-			Name:      "Sample Customer 2",
-			Email:     "customer2@example.com",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-	}
-
-	return ctx.JSON(http.StatusOK, customers)
+	return h.customerController.ListCustomers(ctx, params)
 }
 
 // CreateCustomer handles customer creation
 func (h *APIHandler) CreateCustomer(ctx echo.Context) error {
-	var request openapi.CustomerRequest
-	if err := ctx.Bind(&request); err != nil {
-		return ctx.JSON(http.StatusBadRequest, openapi.Error{
-			Code:    "invalid_request",
-			Message: "Invalid request body",
-		})
-	}
-
-	// 現在時刻を設定
-	now := time.Now()
-
-	// レスポンスを作成
-	response := openapi.CustomerResponse{
-		Id:        "temp-customer-id",
-		Name:      request.Name,
-		Email:     request.Email,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	return ctx.JSON(http.StatusCreated, response)
+	return h.customerController.CreateCustomer(ctx)
 }
 
 // DeleteCustomer handles customer deletion
 func (h *APIHandler) DeleteCustomer(ctx echo.Context, customerId string) error {
-	return ctx.NoContent(http.StatusNoContent)
+	return h.customerController.DeleteCustomer(ctx, customerId)
 }
 
 // GetCustomer handles getting a customer by ID
 func (h *APIHandler) GetCustomer(ctx echo.Context, customerId string) error {
-	now := time.Now()
-
-	// サンプルデータを返す（実際の実装では repository から取得）
-	response := openapi.CustomerResponse{
-		Id:        customerId,
-		Name:      "Sample Customer",
-		Email:     "sample@example.com",
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	return ctx.JSON(http.StatusOK, response)
+	return h.customerController.GetCustomer(ctx, customerId)
 }
 
 // UpdateCustomer handles customer update
 func (h *APIHandler) UpdateCustomer(ctx echo.Context, customerId string) error {
-	return ctx.JSON(http.StatusOK, openapi.CustomerResponse{})
+	return h.customerController.UpdateCustomer(ctx, customerId)
 }
 
 // GetCustomerOrders handles getting customer orders
 func (h *APIHandler) GetCustomerOrders(ctx echo.Context, customerId string, params openapi.GetCustomerOrdersParams) error {
-	return ctx.JSON(http.StatusOK, []openapi.OrderResponse{})
+	// TODO: Implement with OrderController
+	return ctx.JSON(200, []openapi.OrderResponse{})
 }
+
+// Order endpoints
 
 // ListOrders handles listing all orders
 func (h *APIHandler) ListOrders(ctx echo.Context, params openapi.ListOrdersParams) error {
-	return ctx.JSON(http.StatusOK, []openapi.OrderResponse{})
+	// TODO: Implement with OrderController
+	return ctx.JSON(200, []openapi.OrderResponse{})
 }
 
 // CreateOrder handles order creation
 func (h *APIHandler) CreateOrder(ctx echo.Context) error {
-	return ctx.JSON(http.StatusCreated, openapi.OrderResponse{})
+	// TODO: Implement with OrderController
+	return ctx.JSON(201, openapi.OrderResponse{})
 }
 
 // GetOrder handles getting an order by ID
 func (h *APIHandler) GetOrder(ctx echo.Context, orderId string) error {
-	return ctx.JSON(http.StatusOK, openapi.OrderResponse{})
+	// TODO: Implement with OrderController
+	return ctx.JSON(200, openapi.OrderResponse{})
 }
 
 // UpdateOrderStatus handles order status update
 func (h *APIHandler) UpdateOrderStatus(ctx echo.Context, orderId string) error {
-	return ctx.JSON(http.StatusOK, openapi.OrderResponse{})
+	// TODO: Implement with OrderController
+	return ctx.JSON(200, openapi.OrderResponse{})
 }
+
+// Product endpoints
 
 // ListProducts handles listing all products
 func (h *APIHandler) ListProducts(ctx echo.Context, params openapi.ListProductsParams) error {
-	return ctx.JSON(http.StatusOK, []openapi.ProductResponse{})
+	// TODO: Implement with ProductController
+	return ctx.JSON(200, []openapi.ProductResponse{})
 }
 
 // CreateProduct handles product creation
 func (h *APIHandler) CreateProduct(ctx echo.Context) error {
-	return ctx.JSON(http.StatusCreated, openapi.ProductResponse{})
+	// TODO: Implement with ProductController
+	return ctx.JSON(201, openapi.ProductResponse{})
 }
 
 // DeleteProduct handles product deletion
 func (h *APIHandler) DeleteProduct(ctx echo.Context, productId string) error {
-	return ctx.NoContent(http.StatusNoContent)
+	// TODO: Implement with ProductController
+	return ctx.NoContent(204)
 }
 
 // GetProduct handles getting a product by ID
 func (h *APIHandler) GetProduct(ctx echo.Context, productId string) error {
-	return ctx.JSON(http.StatusOK, openapi.ProductResponse{})
+	// TODO: Implement with ProductController
+	return ctx.JSON(200, openapi.ProductResponse{})
 }
 
 // UpdateProduct handles product update
 func (h *APIHandler) UpdateProduct(ctx echo.Context, productId string) error {
-	return ctx.JSON(http.StatusOK, openapi.ProductResponse{})
+	// TODO: Implement with ProductController
+	return ctx.JSON(200, openapi.ProductResponse{})
 }

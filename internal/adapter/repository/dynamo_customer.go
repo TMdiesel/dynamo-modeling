@@ -208,3 +208,37 @@ func (r *DynamoCustomerRepository) checkEmailUniqueness(ctx context.Context, cus
 
 	return nil
 }
+
+// ListWithLimit retrieves customers with optional limit
+func (r *DynamoCustomerRepository) ListWithLimit(ctx context.Context, limit *int) ([]*entity.Customer, error) {
+	slog.Info("Listing customers with limit", "limit", limit)
+
+	var items []CustomerItem
+	table := r.client.GetTable()
+
+	query := table.Scan().
+		Filter("'Type' = ?", "CUSTOMER")
+
+	if limit != nil && *limit > 0 {
+		query = query.Limit(*limit)
+	}
+
+	err := query.All(ctx, &items)
+	if err != nil {
+		slog.Error("Failed to list customers", "error", err)
+		return nil, fmt.Errorf("failed to list customers: %w", err)
+	}
+
+	customers := make([]*entity.Customer, 0, len(items))
+	for _, item := range items {
+		customer, err := item.ToEntity()
+		if err != nil {
+			slog.Error("Failed to convert item to entity", "customerID", item.ID, "error", err)
+			continue // Skip invalid items
+		}
+		customers = append(customers, customer)
+	}
+
+	slog.Info("Listed customers successfully", "count", len(customers))
+	return customers, nil
+}
