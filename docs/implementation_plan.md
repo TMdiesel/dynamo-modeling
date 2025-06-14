@@ -129,7 +129,7 @@ AWS SDK: aws-sdk-go-v2
   ```
 - [x] **Task 1.2.10**: ProductRepository インターフェース
 - [x] **Task 1.2.11**: OrderRepository インターフェース
-- [x] **Task 1.2.12**: インメモリリポジトリ実装（テスト用）
+- [x] **Task 1.2.12**: ~~インメモリリポジトリ実装（テスト用）~~ → 削除済み（Clean Architecture 違反のため）
 
 ## Phase 2: Infrastructure（目標期間: 1 週間）
 
@@ -189,6 +189,8 @@ DynamoDB 接続とデータ永続化機能の実装
 - [ ] **Task 2.2.6**: DynamoProductRepository 実装
 - [ ] **Task 2.2.7**: DynamoOrderRepository 実装（基本機能）
 - [ ] **Task 2.2.8**: 全リポジトリの統合テスト
+
+**🎯 現在地**: Sprint 2.2 進行中 - CustomerRepository 完了、Product/Order Repository 実装待ち
 
 ## Phase 3: API Layer（目標期間: 1 週間）
 
@@ -320,3 +322,238 @@ REST API エンドポイントと業務ユースケースの実装
 - **時間不足**: 自動テストを手動テストに変更
 - **知識不足**: 公式ドキュメント・サンプルコード優先参照
 - **環境不足**: クラウド環境の利用検討
+
+## 拡張候補ドメイン
+
+### Phase 5: 在庫・配送・決済拡張（目標期間: 1 週間）
+
+現在の基本 3 ドメイン（Customer, Product, Order）に加えて、以下のドメインを追加することで、より実用的なオンラインショップを構築できるのだ。
+
+#### Warehouse（倉庫・在庫管理）
+
+```go
+// 在庫管理の値オブジェクト
+type WarehouseID    = Branded[string, "WarehouseID"]
+type StockQuantity  = Branded[int, "StockQuantity"]
+type ReorderLevel   = Branded[int, "ReorderLevel"]
+
+// 在庫エンティティ
+type Stock struct {
+    warehouseID WarehouseID
+    productID   ProductID
+    quantity    StockQuantity
+    reorderLevel ReorderLevel
+    location    string // 倉庫内の場所
+}
+
+// 倉庫エンティティ
+type Warehouse struct {
+    id       WarehouseID
+    name     string
+    address  string
+    isActive bool
+}
+```
+
+**実装優先度**: 高（在庫切れ管理は必須機能）
+**DynamoDB アクセスパターン**:
+
+- PK: `WAREHOUSE#{warehouseID}`, SK: `STOCK#{productID}`
+- GSI1: `PRODUCT#{productID}`, SK: `WAREHOUSE#{warehouseID}` （商品別在庫検索）
+- GSI2: `STOCK#LOW`, SK: quantity （在庫切れアラート用）
+
+#### Shipment（配送管理）
+
+```go
+// 配送の値オブジェクト
+type ShipmentID     = Branded[string, "ShipmentID"]
+type TrackingNumber = Branded[string, "TrackingNumber"]
+type ShippingFee    = Money
+
+// 配送状態
+type ShipmentStatus int
+const (
+    ShipmentPending ShipmentStatus = iota
+    ShipmentPicked
+    ShipmentShipped
+    ShipmentDelivered
+    ShipmentReturned
+)
+
+// 配送エンティティ
+type Shipment struct {
+    id            ShipmentID
+    orderID       OrderID
+    trackingNumber TrackingNumber
+    status        ShipmentStatus
+    shippingFee   ShippingFee
+    estimatedDelivery time.Time
+    actualDelivery    *time.Time
+}
+```
+
+**実装優先度**: 中（注文との連携が重要）
+**DynamoDB アクセスパターン**:
+
+- PK: `SHIPMENT#{shipmentID}`, SK: `METADATA`
+- GSI1: `ORDER#{orderID}`, SK: `SHIPMENT#{shipmentID}`
+- GSI2: `STATUS#{status}`, SK: estimatedDelivery （配送状況別検索）
+
+#### Payment（決済管理）
+
+```go
+// 決済の値オブジェクト
+type PaymentID     = Branded[string, "PaymentID"]
+type PaymentMethod = Branded[string, "PaymentMethod"]
+
+// 決済状態
+type PaymentStatus int
+const (
+    PaymentPending PaymentStatus = iota
+    PaymentProcessing
+    PaymentCompleted
+    PaymentFailed
+    PaymentRefunded
+)
+
+// 決済エンティティ
+type Payment struct {
+    id         PaymentID
+    orderID    OrderID
+    amount     Money
+    method     PaymentMethod // "credit_card", "bank_transfer", etc.
+    status     PaymentStatus
+    processedAt *time.Time
+    externalID  string // 外部決済プロバイダのID
+}
+```
+
+**実装優先度**: 高（EC サイトの根幹機能）
+**DynamoDB アクセスパターン**:
+
+- PK: `PAYMENT#{paymentID}`, SK: `METADATA`
+- GSI1: `ORDER#{orderID}`, SK: `PAYMENT#{paymentID}`
+- GSI2: `STATUS#{status}`, SK: processedAt
+
+### Phase 5 実装順序
+
+#### Sprint 5.1: Warehouse ドメイン（2 日）
+
+- [ ] **Task 5.1.1**: Warehouse 値オブジェクト・エンティティ実装
+- [ ] **Task 5.1.2**: WarehouseRepository, StockRepository 実装
+- [ ] **Task 5.1.3**: 在庫減少・補充ユースケース実装
+- [ ] **Task 5.1.4**: 在庫切れ検知機能実装
+
+#### Sprint 5.2: Payment ドメイン（2 日）
+
+- [ ] **Task 5.2.1**: Payment 値オブジェクト・エンティティ実装
+- [ ] **Task 5.2.2**: PaymentRepository 実装
+- [ ] **Task 5.2.3**: 決済処理ユースケース実装（モック）
+- [ ] **Task 5.2.4**: 決済状態管理・履歴機能実装
+
+#### Sprint 5.3: Shipment ドメイン（2 日）
+
+- [ ] **Task 5.3.1**: Shipment 値オブジェクト・エンティティ実装
+- [ ] **Task 5.3.2**: ShipmentRepository 実装
+- [ ] **Task 5.3.3**: 配送状況追跡ユースケース実装
+- [ ] **Task 5.3.4**: 配送完了通知機能実装
+
+#### Sprint 5.4: ドメイン統合（1 日）
+
+- [ ] **Task 5.4.1**: Order → Payment → Shipment の状態連携実装
+- [ ] **Task 5.4.2**: 在庫減少 → 注文確定 の整合性確保
+- [ ] **Task 5.4.3**: 統合テスト実装
+- [ ] **Task 5.4.4**: E2E シナリオテスト実装
+
+## テスト戦略
+
+### 現状の課題と改善方針
+
+#### ~~1. inmemory リポジトリの配置問題~~ → 解決済み
+
+**旧状況**: `internal/domain/repository/inmemory_*.go` （ドメイン層に配置）
+**問題**: Clean Architecture の依存性ルールに違反
+**解決**: inmemory リポジトリを完全削除し、DynamoDB Local 統一テスト戦略に移行
+
+#### 1. テスト実行環境の統一 ✅
+
+**統一後の状態**:
+
+**統一後の状態**:
+
+- 値オブジェクト・エンティティ: 純粋な単体テスト（外部依存なし）
+- リポジトリテスト: DynamoDB Local 使用
+- 統合テスト: DynamoDB Local 使用
+
+**統一方針**:
+
+```bash
+# 開発時: DynamoDB Local起動が前提
+make test-unit         # ドメイン層のテスト（外部依存なし）
+make test-integration  # DynamoDB Local使用のリポジトリテスト
+
+# 全テスト実行
+make test-all     # unit + integration
+```
+
+#### 3. テストのピラミッド構造
+
+```
+      🔺 E2E Tests (少数・重要パス)
+     🔺🔺 Integration Tests (適度・境界テスト)
+   🔺🔺🔺🔺 Unit Tests (多数・ビジネスロジック)
+```
+
+**各層の責務**:
+
+- **Unit Tests**: ドメインロジック（値オブジェクト・エンティティ）
+- **Integration Tests**: リポジトリ実装、ユースケース（DynamoDB Local 使用）
+- **E2E Tests**: API 経由の主要ユーザーシナリオ
+
+#### 2. テスト戦略の実装
+
+```go
+// リポジトリはインターフェースなので、テスト時は差し替え可能
+type CreateOrderUseCase struct {
+    customerRepo repository.CustomerRepository  // インターフェース
+    productRepo  repository.ProductRepository   // インターフェース
+    orderRepo    repository.OrderRepository     // インターフェース
+}
+
+// 統合テスト時（DynamoDB Local使用）
+func TestCreateOrderUseCase(t *testing.T) {
+    // DynamoDB Local接続のリポジトリを使用
+    dynamoClient := setupDynamoDBLocal(t)
+    customerRepo := repository.NewDynamoCustomerRepository(dynamoClient)
+    productRepo := repository.NewDynamoProductRepository(dynamoClient)
+    orderRepo := repository.NewDynamoOrderRepository(dynamoClient)
+
+    usecase := NewCreateOrderUseCase(customerRepo, productRepo, orderRepo)
+    // ...
+}
+
+// 統合テスト時
+func TestCreateOrderIntegration(t *testing.T) {
+    // DynamoDB Localを使用（実環境に近い）
+    db := testutil.SetupDynamoDB(t)
+    customerRepo := dynamo.NewCustomerRepository(db)
+    productRepo := dynamo.NewProductRepository(db)
+    orderRepo := dynamo.NewOrderRepository(db)
+
+    usecase := NewCreateOrderUseCase(customerRepo, productRepo, orderRepo)
+    // ...
+}
+```
+
+### テスト実行時間の目標
+
+- **Unit Tests**: < 5 秒 （開発時の高速フィードバック）
+- **Integration Tests**: < 30 秒 （DynamoDB Local の起動含む）
+- **E2E Tests**: < 2 分 （API 経由の複数シナリオ）
+
+### テストカバレッジ目標
+
+- **ドメイン層**: 90%以上 （ビジネスロジックの品質確保）
+- **ユースケース層**: 85%以上 （アプリケーションロジックの品質確保）
+- **アダプター層**: 70%以上 （主要パスの動作確認）
+- **全体**: 80%以上

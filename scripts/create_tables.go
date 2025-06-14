@@ -1,3 +1,6 @@
+//go:build ignore
+
+// filepath: /Users/muratatakuya/project/aws/dynamo-modeling/scripts/create_tables.go
 package main
 
 import (
