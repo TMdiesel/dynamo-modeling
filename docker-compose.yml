@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.4.0
+    container_name: dynamo-modeling-db
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-port", "8000"]
+    networks:
+      - dynamo-network
+
+networks:
+  dynamo-network:
+    driver: bridge
+
+# 永続化が必要な場合は以下をコメントアウト
+# volumes:
+#   dynamodb-data:
+#     driver: local
+
+# 永続化版のDynamoDB Local設定
+# services:
+#   dynamodb-local-persistent:
+#     image: amazon/dynamodb-local:2.4.0
+#     container_name: dynamo-modeling-db-persistent
+#     ports:
+#       - "8000:8000"
+#     command: ["-jar", "DynamoDBLocal.jar", "-dbPath", "/data", "-port", "8000"]
+#     volumes:
+#       - dynamodb-data:/data
+#     networks:
+#       - dynamo-network
